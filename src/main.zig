@@ -6,6 +6,7 @@ const RootContainer = @import("./banffy/nodes/root_container.zig").RootContainer
 const Container = @import("./banffy/nodes/container.zig").Container;
 const MarginContainer = @import("./banffy/nodes/margin_container.zig").MarginContainer;
 const HBoxContainer = @import("./banffy/nodes/hbox_container.zig").HBoxContainer;
+const VBoxContainer = @import("./banffy/nodes/vbox_container.zig").VBoxContainer;
 
 pub fn main() anyerror!void {
     // Allocator
@@ -63,10 +64,15 @@ pub fn main() anyerror!void {
     hbc.gap_error = true;
     margin_container.addChild(hbc.node());
 
-    var hbc_c1 = Container.init(allocator, 0, 0, .FILL, .FILL, 0, 0, hbc.node());
+    var hbc_c1 = VBoxContainer.init(allocator, 0, 0, .FILL, .FILL, 0, 0, hbc.node());
     defer hbc_c1.deinit();
     hbc_c1.background = .{.r = 255, .g = 0, .b = 0, .a = 255};
     hbc.addChild(hbc_c1.node());
+
+    var hbc_c1_c1 = Container.init(allocator, 0, 0, .FILL, .FILL, 10, 10, hbc_c1.node());
+    defer hbc_c1_c1.deinit();
+    hbc_c1_c1.background = .{ .r = 128, .g = 0, .b = 128, .a = 255 };
+    hbc_c1.addChild(hbc_c1_c1.node());
 
     var hbc_c2 = Container.init(allocator, 0, 0, .FIXED, .FILL, 50, 0, hbc.node());
     defer hbc_c2.deinit();
