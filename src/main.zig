@@ -86,6 +86,8 @@ pub fn main() anyerror!void {
     rl.setTargetFPS(60);
 
     while (!rl.windowShouldClose()) {
+        hbc_c2.width = @as(u32, @intFromFloat(@abs(50 * std.math.sin(@as(f32, @floatFromInt(@mod(std.time.milliTimestamp(), 1000))) / 1000.0))));
+
         root_container.node().preLogicW();
         root_container.node().preLogicH();
         root_container.node().logic();
