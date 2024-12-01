@@ -11,7 +11,7 @@ pub const RootContainer = struct {
     height: u32,
     background: ?Color = null,
     child: Node = undefined,
-    behavXY: Draw.Behav = .FIXED,
+    behavWH: Draw.Behav = .FIXED,
     // here just so behav from node 
     // to not be ?*Draw.behav
 
@@ -32,13 +32,23 @@ pub const RootContainer = struct {
     pub fn deinit(_: *RootContainer) void {
         // just for consistency
     }
+
+    pub fn preLogicW(ptr: *anyopaque) void {
+        const self = @as(*RootContainer, @ptrCast(@alignCast(ptr)));
+        self.child.preLogicW();
+    }
+
+    pub fn preLogicH(ptr: *anyopaque) void {
+        const self = @as(*RootContainer, @ptrCast(@alignCast(ptr)));
+        self.child.preLogicH();
+    }
     
     pub fn logic(ptr: *anyopaque) void {
         const self = @as(*RootContainer, @ptrCast(@alignCast(ptr)));
         self.child.x.* = self.x;
         self.child.y.* = self.y;
-        if (self.child.behavX.* == .FILL) self.child.width.* = self.width;
-        if (self.child.behavY.* == .FILL) self.child.height.* = self.height;
+        if (self.child.behavW.* == .FILL) self.child.width.* = self.width;
+        if (self.child.behavH.* == .FILL) self.child.height.* = self.height;
         self.child.logic();
     }
 
@@ -56,9 +66,11 @@ pub const RootContainer = struct {
             .y = &self.y,
             .width = &self.width,
             .height = &self.height,
-            .behavX = &self.behavXY,
-            .behavY = &self.behavXY,
+            .behavW = &self.behavWH,
+            .behavH = &self.behavWH,
 
+            ._preLogicW = preLogicW,
+            ._preLogicH = preLogicH,
             ._logic = logic,
             ._draw = draw,
         };

@@ -4,17 +4,25 @@ const Node = @import("../utils/node.zig").Node;
 const Draw = @import("../utils/draw.zig").Draw;
 const Color = @import("../utils/color.zig").Color;
 
-pub const Container = struct {
+pub const MarginContainer = struct {    
     x: i32,
     y: i32,
     behavW: Draw.Behav,
     behavH: Draw.Behav,
     width: u32,
     height: u32,
+    margin: Margin,
 
     background: ?Color = null,
     parent: Node,
     children: std.ArrayList(Node),
+
+    pub const Margin = struct {
+        left: u32,
+        right: u32,
+        top: u32,
+        bottom: u32,
+    };
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -24,29 +32,31 @@ pub const Container = struct {
         behavH: Draw.Behav,
         width: u32,
         height: u32,
+        margin: Margin,
         parent: Node,
-    ) Container {
-        return Container {
+    ) MarginContainer {
+        return MarginContainer {
             .x = x,
             .y = y,
             .behavW = behavW,
             .behavH = behavH,
             .width = width,
             .height = height,
+            .margin = margin,
             .parent = parent,
             .children = std.ArrayList(Node).init(allocator),
         };
     }
 
-    pub fn deinit(self: *Container) void {
+    pub fn deinit(self: *MarginContainer) void {
         self.children.deinit();
     }
 
     pub fn preLogicW(ptr: *anyopaque) void {
-        const self = @as(*Container, @ptrCast(@alignCast(ptr)));
+        const self = @as(*MarginContainer, @ptrCast(@alignCast(ptr)));
 
         // calculate width
-        var width: u32 = 0;
+        var width: u32 = self.margin.left + self.margin.right;
         if (self.behavW == .FIT_CONTENT) {
             for (self.children.items) |child| {
                 child.preLogicW();
@@ -60,10 +70,10 @@ pub const Container = struct {
     }
 
     pub fn preLogicH(ptr: *anyopaque) void {
-        const self = @as(*Container, @ptrCast(@alignCast(ptr)));
+        const self = @as(*MarginContainer, @ptrCast(@alignCast(ptr)));
 
         // calculate height
-        var height: u32 = 0;
+        var height: u32 = self.margin.top + self.margin.bottom;
         if (self.behavH == .FIT_CONTENT) {
             for (self.children.items) |child| {
                 child.preLogicH();
@@ -77,19 +87,19 @@ pub const Container = struct {
     }
     
     pub fn logic(ptr: *anyopaque) void {
-        const self = @as(*Container, @ptrCast(@alignCast(ptr)));
+        const self = @as(*MarginContainer, @ptrCast(@alignCast(ptr)));
 
         for (self.children.items) |child| {
-            child.x.* = self.x;
-            child.y.* = self.y;
-            if (child.behavW.* == .FILL) child.width.* = self.width;
-            if (child.behavH.* == .FILL) child.height.* = self.height;
+            child.x.* = self.x + @as(i32, @intCast(self.margin.left));
+            child.y.* = self.y + @as(i32, @intCast(self.margin.top));
+            if (child.behavW.* == .FILL) child.width.* = self.width - self.margin.left - self.margin.right;
+            if (child.behavH.* == .FILL) child.height.* = self.height - self.margin.top - self.margin.bottom;
             child.logic();
         }
     }
 
     pub fn draw(ptr: *anyopaque) void {
-        const self = @as(*Container, @ptrCast(@alignCast(ptr)));
+        const self = @as(*MarginContainer, @ptrCast(@alignCast(ptr)));
         if (self.background) |background| Draw.drawRect(
             self.x,
             self.y,
@@ -103,11 +113,11 @@ pub const Container = struct {
         }
     }
 
-    pub fn addChild(self: *Container, child: Node) void {
+    pub fn addChild(self: *MarginContainer, child: Node) void {
         self.children.append(child) catch unreachable;
     }
     
-    pub fn node(self: *Container) Node {
+    pub fn node(self: *MarginContainer) Node {
         return Node {
             .ptr = self,
             .parent = &self.parent,
