@@ -11,6 +11,8 @@ pub const Container = struct {
     behavH: Draw.Behav,
     width: u32,
     height: u32,
+    content_width: u32 = 0,
+    content_height: u32 = 0,
 
     background: ?Color = null,
     parent: Node,
@@ -44,36 +46,28 @@ pub const Container = struct {
 
     pub fn preLogicW(ptr: *anyopaque) void {
         const self = @as(*Container, @ptrCast(@alignCast(ptr)));
+        for (self.children.items) |child| child.preLogicW();
 
         // calculate width
-        var width: u32 = 0;
-        if (self.behavW == .FIT_CONTENT) {
-            for (self.children.items) |child| {
-                child.preLogicW();
-                if (child.behavW.* != .FILL) {
-                    // maybe add one for minimum for fill?
-                    width += child.width.*;
-                }
-            }
+        self.content_width = 0;
+        for (self.children.items) |child| {
+            self.content_width += child.width.*;
         }
-        self.width = width;
+        if (self.behavW == .FILL) self.width = 0;
+        if (self.behavW == .FIT_CONTENT) self.width = self.content_width;
     }
 
     pub fn preLogicH(ptr: *anyopaque) void {
         const self = @as(*Container, @ptrCast(@alignCast(ptr)));
+        for (self.children.items) |child| child.preLogicH();
 
         // calculate height
-        var height: u32 = 0;
-        if (self.behavH == .FIT_CONTENT) {
-            for (self.children.items) |child| {
-                child.preLogicH();
-                if (child.behavH.* != .FILL) {
-                    // maybe add one for minimum for fill?
-                    height += child.height.*;
-                }
-            }
+        self.content_height = 0;
+        for (self.children.items) |child| {
+            self.content_height += child.height.*;
         }
-        self.height = height;
+        if (self.behavH == .FILL) self.height = 0;
+        if (self.behavH == .FIT_CONTENT) self.height = self.height;
     }
     
     pub fn logic(ptr: *anyopaque) void {

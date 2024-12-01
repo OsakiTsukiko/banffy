@@ -4,7 +4,7 @@ const Node = @import("../utils/node.zig").Node;
 const Draw = @import("../utils/draw.zig").Draw;
 const Color = @import("../utils/color.zig").Color;
 
-pub const MarginContainer = struct {    
+pub const HBoxContainer = struct {
     x: i32,
     y: i32,
     behavW: Draw.Behav,
@@ -13,18 +13,15 @@ pub const MarginContainer = struct {
     height: u32,
     content_width: u32 = 0,
     content_height: u32 = 0,
-    margin: Margin,
+    gap: u32 = 0,
+    gap_error: bool = false,
 
     background: ?Color = null,
     parent: Node,
     children: std.ArrayList(Node),
 
-    pub const Margin = struct {
-        left: u32,
-        right: u32,
-        top: u32,
-        bottom: u32,
-    };
+    // state
+    fill_children_count: u32 = 0,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -34,33 +31,34 @@ pub const MarginContainer = struct {
         behavH: Draw.Behav,
         width: u32,
         height: u32,
-        margin: Margin,
         parent: Node,
-    ) MarginContainer {
-        return MarginContainer {
+    ) HBoxContainer {
+        return HBoxContainer {
             .x = x,
             .y = y,
             .behavW = behavW,
             .behavH = behavH,
             .width = width,
             .height = height,
-            .margin = margin,
             .parent = parent,
             .children = std.ArrayList(Node).init(allocator),
         };
     }
 
-    pub fn deinit(self: *MarginContainer) void {
+    pub fn deinit(self: *HBoxContainer) void {
         self.children.deinit();
     }
 
     pub fn preLogicW(ptr: *anyopaque) void {
-        const self = @as(*MarginContainer, @ptrCast(@alignCast(ptr)));
+        const self = @as(*HBoxContainer, @ptrCast(@alignCast(ptr)));
         for (self.children.items) |child| child.preLogicW();
 
         // calculate width
+        self.fill_children_count = 0;
         self.content_width = 0;
+        if (self.children.items.len >= 2) self.content_width += (@as(u32, @intCast(self.children.items.len)) - 1) * self.gap;
         for (self.children.items) |child| {
+            if (child.behavW.* == .FILL) self.fill_children_count += 1;
             self.content_width += child.width.*;
         }
         if (self.behavW == .FILL) self.width = 0;
@@ -68,7 +66,7 @@ pub const MarginContainer = struct {
     }
 
     pub fn preLogicH(ptr: *anyopaque) void {
-        const self = @as(*MarginContainer, @ptrCast(@alignCast(ptr)));
+        const self = @as(*HBoxContainer, @ptrCast(@alignCast(ptr)));
         for (self.children.items) |child| child.preLogicH();
 
         // calculate height
@@ -81,19 +79,31 @@ pub const MarginContainer = struct {
     }
     
     pub fn logic(ptr: *anyopaque) void {
-        const self = @as(*MarginContainer, @ptrCast(@alignCast(ptr)));
+        const self = @as(*HBoxContainer, @ptrCast(@alignCast(ptr)));
 
-        for (self.children.items) |child| {
-            child.x.* = self.x + @as(i32, @intCast(self.margin.left));
-            child.y.* = self.y + @as(i32, @intCast(self.margin.top));
-            if (child.behavW.* == .FILL) child.width.* = self.width - self.margin.left - self.margin.right;
-            if (child.behavH.* == .FILL) child.height.* = self.height - self.margin.top - self.margin.bottom;
+        const leftover_width = self.width - self.content_width;
+        var distributed_fill: u32 = 0;
+        if (self.fill_children_count == 0) { distributed_fill = leftover_width; }
+        else { distributed_fill = @divTrunc(leftover_width, self.fill_children_count); }
+        
+
+        var x_index = self.x;
+        for (self.children.items, 0..) |child, i| {
+            child.x.* = x_index;
+            child.y.* = self.y;
+            if (child.behavW.* == .FILL) child.width.* = distributed_fill;
+            if (child.behavH.* == .FILL) child.height.* = self.height;
+            if (self.gap_error and i == 0 and leftover_width - distributed_fill * self.fill_children_count > 0 ) {
+                x_index += @as(i32, @intCast(leftover_width - distributed_fill * self.fill_children_count));   
+            }
+            x_index += @as(i32, @intCast(child.width.*));
+            x_index += @as(i32, @intCast(self.gap));
             child.logic();
         }
     }
 
     pub fn draw(ptr: *anyopaque) void {
-        const self = @as(*MarginContainer, @ptrCast(@alignCast(ptr)));
+        const self = @as(*HBoxContainer, @ptrCast(@alignCast(ptr)));
         if (self.background) |background| Draw.drawRect(
             self.x,
             self.y,
@@ -107,11 +117,11 @@ pub const MarginContainer = struct {
         }
     }
 
-    pub fn addChild(self: *MarginContainer, child: Node) void {
+    pub fn addChild(self: *HBoxContainer, child: Node) void {
         self.children.append(child) catch unreachable;
     }
     
-    pub fn node(self: *MarginContainer) Node {
+    pub fn node(self: *HBoxContainer) Node {
         return Node {
             .ptr = self,
             .parent = &self.parent,
