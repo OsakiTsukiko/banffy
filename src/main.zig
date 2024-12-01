@@ -67,12 +67,24 @@ pub fn main() anyerror!void {
     var hbc_c1 = VBoxContainer.init(allocator, 0, 0, .FILL, .FILL, 0, 0, hbc.node());
     defer hbc_c1.deinit();
     hbc_c1.background = .{.r = 255, .g = 0, .b = 0, .a = 255};
+    hbc_c1.gap = 10;
+    hbc_c1.gap_error = true;
     hbc.addChild(hbc_c1.node());
 
     var hbc_c1_c1 = Container.init(allocator, 0, 0, .FILL, .FILL, 10, 10, hbc_c1.node());
     defer hbc_c1_c1.deinit();
     hbc_c1_c1.background = .{ .r = 128, .g = 0, .b = 128, .a = 255 };
     hbc_c1.addChild(hbc_c1_c1.node());
+    
+    var hbc_c2_c2 = Container.init(allocator, 0, 0, .FILL, .FILL, 10, 10, hbc_c1.node());
+    defer hbc_c2_c2.deinit();
+    hbc_c2_c2.background = .{ .r = 64, .g = 0, .b = 128, .a = 255 };
+    hbc_c1.addChild(hbc_c2_c2.node());
+
+    var hbc_c2_c3 = Container.init(allocator, 0, 0, .FILL, .FILL, 10, 10, hbc_c1.node());
+    defer hbc_c2_c3.deinit();
+    hbc_c2_c3.background = .{ .r = 128, .g = 0, .b = 64, .a = 255 };
+    hbc_c1.addChild(hbc_c2_c3.node());
 
     var hbc_c2 = Container.init(allocator, 0, 0, .FIXED, .FILL, 50, 0, hbc.node());
     defer hbc_c2.deinit();
